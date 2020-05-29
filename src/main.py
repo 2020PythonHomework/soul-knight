@@ -6,7 +6,7 @@ import sys
 import pygame
 from pygame.locals import *
 #import core
-from character import MySprite
+from character import *
 
 hero_png = '../img/character/hero.png'
 map_bottom_png = '../img/map/back0.png'
@@ -21,10 +21,10 @@ screen = pygame.display.set_mode(windows_size)      # 启动屏幕
 framerate = pygame.time.Clock()                     # 控制游戏最大帧率
 
 # initial player
-hero = MySprite(screen)
-hero.load(hero_png, 100, 100, 4)
+hero0 = Hero0(screen)
+hero0.load(hero_png, 100, 100, 4)
 hero_group = pygame.sprite.Group()
-hero_group.add(hero)
+hero_group.add(hero0)
 
 while True:
     framerate.tick(30)
@@ -34,8 +34,34 @@ while True:
         if event.type == pygame.QUIT:
             sys.exit()
 
+        elif event.type == KEYUP:
+            hero0.movement = False
+            hero0.velocity = [0,0]
+
+    keys = pygame.key.get_pressed()
+
+
+    if keys[K_w]:
+        hero0.velocity[1] = -5
+        hero0.movement = True
+    elif keys[K_s]:
+        hero0.velocity[1] = 5
+        hero0.movement = True
+    elif keys[K_d]:
+        hero0.velocity[0] = 5
+        hero0.movement = True
+        hero0.direction = 1
+    elif keys[K_a]:
+        hero0.velocity[0] = -5
+        hero0.movement = True
+        hero0.direction = 0
+
+
+
+    screen.fill((255,255,255))
     hero_group.update(ticks)
     hero_group.draw(screen)
+
     pygame.display.update()
 
 
