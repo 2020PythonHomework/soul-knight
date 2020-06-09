@@ -20,10 +20,9 @@ class MySprite(pygame.sprite.Sprite):
         self.last_time = 0
         #------------------------------------------------------
         # character message
-        self.movement = False           # 控制是否移动
-        self.direction = 0               # 向左为0，向右为1，控制动画播放
+        self.direction = 0  # 向左为0，向右为1，控制动画播放
         self.velocity = [0.0, 0.0]      # 人物速度[v_x, v_y]
-
+        self.movement = False  # 控制是否移动
 
     #X property
     def _getx(self): return self.rect.x
@@ -47,8 +46,8 @@ class MySprite(pygame.sprite.Sprite):
         if self.movement:
             self.X += self.velocity[0]
             self.Y += self.velocity[1]
-            self.first_frame = self.direction * 4        # 向左走从0帧到3帧，向右4-7帧
-            self.last_frame = self.first_frame + 3
+            self.first_frame = self.direction * self.columns        # 向左走从0帧到3帧，向右4-7帧
+            self.last_frame = self.first_frame + self.columns - 1
         else:
             self.first_frame = self.last_frame          # 人物静止
 
@@ -59,7 +58,7 @@ class MySprite(pygame.sprite.Sprite):
         self.frame_height = height
         self.rect = Rect(0,0,width,height)
         self.columns = columns
-        rect = self.master_image.get_rect()
+       # rect = self.master_image.get_rect()
         self.last_frame = 1
 
     #update picture-------------------------------------------------------
@@ -74,8 +73,8 @@ class MySprite(pygame.sprite.Sprite):
         if self.frame != self.old_frame: # 是否更新图片
             frame_x = (self.frame % self.columns) * self.frame_width    # 帧左上x相对于master_image坐标
             frame_y = (self.frame // self.columns) * self.frame_height  # 帧左上y相对于master_image坐标
-            rect = ( frame_x, frame_y, self.frame_width, self.frame_height )
-            self.image = self.master_image.subsurface(rect)
+            subRect = ( frame_x, frame_y, self.frame_width, self.frame_height )
+            self.image = self.master_image.subsurface(subRect)
             self.old_frame = self.frame
 
         self.move()
@@ -83,6 +82,24 @@ class MySprite(pygame.sprite.Sprite):
 class Hero0(MySprite):
     def __init__(self, target):
         MySprite.__init__(self, target)
+        # 初始化血、蓝
+        self.__maxHp = 7
+        self.__currentHP = self.__maxHp
+        self.__maxMp = 200
+        self.__currentMP = self.__maxMp
+
+        self.is_attack = False
+        self.last_attack_time = 0
+        self.atackCD = 0.1
+
+class Bullet(MySprite):
+    def __init__(self, target):
+        MySprite.__init__(self, target)
+        self.__damage = 1
+        self.__atackCD = 0.1
+        self.speed = 25
+        self.movement = True
+
 
 
 
