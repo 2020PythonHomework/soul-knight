@@ -1,5 +1,8 @@
 import pygame
 from pygame.locals import * # 导入pygame中所有常量
+import time
+import random
+import math
 
 class MySprite(pygame.sprite.Sprite):
     def __init__(self, target):
@@ -86,20 +89,102 @@ class Hero0(MySprite):
         self.__maxHp = 7
         self.__currentHP = self.__maxHp
         self.__maxMp = 200
-        self.__currentMP = self.__maxMp
+        self.currentMP = self.__maxMp
 
-        self.is_attack = False
+       # self.is_attack = False
         self.last_attack_time = 0
         self.atackCD = 0.1
+    def can_attack(self):
+        return (time.process_time() - self.last_attack_time > self.atackCD) \
+               and self.currentMP > 0
+
+    def attack(self, bullet_list, vel):
+        return bullet_list.attack(self, vel)
+
+
 
 class Bullet(MySprite):
-    def __init__(self, target):
+    def __init__(self, target, owner = 0):
         MySprite.__init__(self, target)
         self.__damage = 1
         self.__atackCD = 0.1
         self.speed = 25
         self.movement = True
+    def is_out_screen(self):
+        return self.X > 640 or self.Y > 480 or self.X < 0 or self.Y < 0
 
+
+
+class Bullet_list(object):
+    def __init__(self, display_target, file, owner):
+        self.l = []
+        self.l_pointer = 0
+        self.owner = owner
+        for i in range(30):
+            bullet = Bullet(display_target)
+            bullet.load(file, 40, 20, 2)
+            self.l.append(bullet)
+    def attack(self, owner, vel):
+        # 初始化子弹位置、速度
+        self.l[self.l_pointer].X = owner.X
+        self.l[self.l_pointer].Y = owner.Y
+        self.l[self.l_pointer].velocity = vel
+
+        tmp = self.l[self.l_pointer]
+        self.l_pointer = (self.l_pointer+1) % 30
+        return tmp
+
+
+class Monster0(MySprite):
+    def __init__(self, target):
+        MySprite.__init__(self, target)
+        self.__maxHp = 10
+        self.__currentHP = self.__maxHp
+
+        self.__attack_target = None
+        self.max_stay_time = 1.5
+        self.stay_start_time = 0
+        self.stay_end_time = 0
+        self.max_move_time = 1.5
+
+        self.random_moveCD = 0.2
+        self.random_move = 0
+        self.attackCD = 2
+        self.last_attack_time = 0
+
+
+    def update(self, current_time, rate=100):
+        MySprite.update(self, current_time, rate)
+
+        #自动移动
+        if self.movement == True and time.process_time() - self.random_move > self.random_moveCD:
+            self.random_move = time.process_time()
+
+            x = self.attack_target.X - self.X
+            y = self.attack_target.Y - self.Y
+            if x != 0 or y != 0:
+                self.velocity[0] = 4 * x / math.sqrt(x * x + y * y)
+                self.velocity[1] = 4 * y / math.sqrt(x * x + y * y)
+
+            else:
+                self.velocity = [0, 0]
+        if self.movement == False and (time.process_time() - self.stay_start_time > self.max_stay_time):
+            self.movement = True
+            self.stay_end_time = time.process_time()
+
+
+        if self.movement == True and time.process_time() - self.stay_end_time > self.max_move_time:
+            self.stay_start_time = time.process_time()
+            self.movement = False
+
+
+
+    @property
+    def attack_target(self):
+        return self.__attack_target
+    @attack_target.setter
+    def attack_target(self, target):
+        self.__attack_target = target
 
 
 
