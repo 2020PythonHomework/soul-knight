@@ -15,6 +15,8 @@ map_top_png = '../img/map/shit.png'
 windows_size = (640, 480)
 pistol_png = '../img/weapons/pistol.png'
 monster0_png = '../img/character/monster0.png'
+bullet0_png = '../img/weapons/bullet0.png'
+bullet1_png = '../img/weapons/bullet1.png'
 
 
 #main__--------------------------------------------------------------
@@ -30,11 +32,13 @@ hero_group = pygame.sprite.Group()
 hero_group.add(hero0)
 
 # initial weapon
-hero_bl = Bullet_list(screen, pistol_png, hero0)
+hero_bl = Bullet_list(screen, bullet0_png)
 hero_bullet_group = pygame.sprite.Group()
 
+monster_bl = Bullet_list(screen, bullet1_png, bullet_speed=9)
+monster_bullet_group = pygame.sprite.Group()
 # initial a monster
-monster0 = Monster0(screen)
+monster0 = Monster0(screen, monster_bl, monster_bullet_group)
 monster0.load(monster0_png, 100, 100, 4)
 monster0.attack_target = hero0
 monster_group = pygame.sprite.Group()
@@ -101,6 +105,8 @@ while True:
     hero_bullet_group.draw(screen)
     monster_group.update(ticks)
     monster_group.draw(screen)
+    monster_bullet_group.update(ticks)
+    monster_bullet_group.draw(screen)
 
     pygame.display.update()
 

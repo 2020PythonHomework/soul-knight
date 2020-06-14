@@ -52,7 +52,7 @@ class MySprite(pygame.sprite.Sprite):
             self.first_frame = self.direction * self.columns        # 向左走从0帧到3帧，向右4-7帧
             self.last_frame = self.first_frame + self.columns - 1
         else:
-            self.first_frame = self.last_frame          # 人物静止
+            self.last_frame = self.first_frame +1          # 人物静止
 
     #load picture---------------------------------------------------------
     def load(self, filename, width, height, columns):
@@ -62,7 +62,7 @@ class MySprite(pygame.sprite.Sprite):
         self.rect = Rect(0,0,width,height)
         self.columns = columns
        # rect = self.master_image.get_rect()
-        self.last_frame = 1
+       # self.last_frame = 0
 
     #update picture-------------------------------------------------------
     def update(self, current_time, rate=100):
@@ -104,11 +104,11 @@ class Hero0(MySprite):
 
 
 class Bullet(MySprite):
-    def __init__(self, target, owner = 0):
+    def __init__(self, target, speed):
         MySprite.__init__(self, target)
         self.__damage = 1
         self.__atackCD = 0.1
-        self.speed = 25
+        self.speed = speed
         self.movement = True
     def is_out_screen(self):
         return self.X > 640 or self.Y > 480 or self.X < 0 or self.Y < 0
@@ -116,18 +116,18 @@ class Bullet(MySprite):
 
 
 class Bullet_list(object):
-    def __init__(self, display_target, file, owner):
+    def __init__(self, display_target, file, bullet_speed = 25):
         self.l = []
         self.l_pointer = 0
-        self.owner = owner
+
         for i in range(30):
-            bullet = Bullet(display_target)
-            bullet.load(file, 40, 20, 2)
+            bullet = Bullet(display_target, bullet_speed)
+            bullet.load(file, 40, 40, 1)
             self.l.append(bullet)
     def attack(self, owner, vel):
         # 初始化子弹位置、速度
-        self.l[self.l_pointer].X = owner.X
-        self.l[self.l_pointer].Y = owner.Y
+        self.l[self.l_pointer].X = owner.X + 50
+        self.l[self.l_pointer].Y = owner.Y + 50
         self.l[self.l_pointer].velocity = vel
 
         tmp = self.l[self.l_pointer]
@@ -136,47 +136,63 @@ class Bullet_list(object):
 
 
 class Monster0(MySprite):
-    def __init__(self, target):
+    def __init__(self, target, bullet_list = None, bullet_group = None):
         MySprite.__init__(self, target)
         self.__maxHp = 10
         self.__currentHP = self.__maxHp
 
         self.__attack_target = None
+        self.bullet_list = bullet_list
+        self.bullet_group = bullet_group
         self.max_stay_time = 1.5
         self.stay_start_time = 0
         self.stay_end_time = 0
         self.max_move_time = 1.5
 
-        self.random_moveCD = 0.2
+        self.random_moveCD = 0.5
         self.random_move = 0
-        self.attackCD = 2
+        self.attackCD = 0.3
         self.last_attack_time = 0
 
+        self.target_direction = [0,0]
 
     def update(self, current_time, rate=100):
         MySprite.update(self, current_time, rate)
-
+        x = self.attack_target.X - self.X
+        y = self.attack_target.Y - self.Y
+        if x != 0 or y != 0:
+            self.target_direction[0] = x / math.sqrt(x*x + y*y)
+            self.target_direction[1] = y / math.sqrt(x*x + y*y)
+        else:
+            self.target_direction = [0,0]
         #自动移动
         if self.movement == True and time.process_time() - self.random_move > self.random_moveCD:
             self.random_move = time.process_time()
 
-            x = self.attack_target.X - self.X
-            y = self.attack_target.Y - self.Y
-            if x != 0 or y != 0:
-                self.velocity[0] = 4 * x / math.sqrt(x * x + y * y)
-                self.velocity[1] = 4 * y / math.sqrt(x * x + y * y)
-
+            self.velocity[0] = 4 * self.target_direction[0]
+            self.velocity[1] = 4 * self.target_direction[1]
+            if self.velocity[0] > 0:
+                self.direction = 1
             else:
-                self.velocity = [0, 0]
+                self.direction = 0
+
         if self.movement == False and (time.process_time() - self.stay_start_time > self.max_stay_time):
             self.movement = True
             self.stay_end_time = time.process_time()
 
-
         if self.movement == True and time.process_time() - self.stay_end_time > self.max_move_time:
             self.stay_start_time = time.process_time()
             self.movement = False
+        # 自动移动代码结束------------------------------------------------
+        # 自动开火
+        if self.movement == False and time.process_time() - self.last_attack_time > self.attackCD:          #暂时采用一旦停止移动就开火的逻辑
 
+            self.last_attack_time = time.process_time()
+            x = self.target_direction[0]
+            y = self.target_direction[1]
+            x = (x + random.uniform(-0.5,0.5)) * self.bullet_list.l[0].speed
+            y = (y + random.uniform(-0.5,0.5)) * self.bullet_list.l[0].speed
+            self.bullet_group.add(self.attack(self.bullet_list, (x, y) ))
 
 
     @property
@@ -186,7 +202,8 @@ class Monster0(MySprite):
     def attack_target(self, target):
         self.__attack_target = target
 
-
+    def attack(self, bullet_list, vel):
+        return bullet_list.attack(self, vel)
 
 
 
