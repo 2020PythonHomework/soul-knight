@@ -12,7 +12,7 @@ from character import *
 hero_png = '../img/character/hero.png'
 map_bottom_png = '../img/map/back0.png'
 map_top_png = '../img/map/shit.png'
-windows_size = (640, 480)
+windows_size = (1080, 720)
 pistol_png = '../img/weapons/pistol.png'
 monster0_png = '../img/character/monster0.png'
 bullet0_png = '../img/weapons/bullet0.png'
@@ -35,7 +35,7 @@ hero_group.add(hero0)
 hero_bl = Bullet_list(screen, bullet0_png)
 hero_bullet_group = pygame.sprite.Group()
 
-monster_bl = Bullet_list(screen, bullet1_png, bullet_speed=9)
+monster_bl = Bullet_list(screen, bullet1_png, bullet_speed=15)
 monster_bullet_group = pygame.sprite.Group()
 # initial a monster
 monster0 = Monster0(screen, monster_bl, monster_bullet_group)
@@ -64,17 +64,17 @@ while True:
 # 控制人物移动
 
     if keys[K_w]:
-        hero0.velocity[1] = -5
+        hero0.velocity[1] = -7
         hero0.movement = True
     if keys[K_s]:
-        hero0.velocity[1] = 5
+        hero0.velocity[1] = 7
         hero0.movement = True
     if keys[K_d]:
-        hero0.velocity[0] = 5
+        hero0.velocity[0] = 7
         hero0.movement = True
         hero0.direction = 1
     if keys[K_a]:
-        hero0.velocity[0] = -5
+        hero0.velocity[0] = -7
         hero0.movement = True
         hero0.direction = 0
 
@@ -96,6 +96,15 @@ while True:
         if i.is_out_screen():
             hero_bullet_group.remove(i)
             i.position = hero0.position     # 避免子弹被清空后仍调用该函数
+
+    # 检测玩家是否被击中
+    attacker = pygame.sprite.spritecollideany(hero0, monster_bullet_group)
+    if attacker != None:
+        if pygame.sprite.collide_circle_ratio(0.65)(hero0, attacker):
+            hero0.currentHP -= attacker.damage
+            print(hero0.currentHP)
+            monster_bullet_group.remove(attacker)
+
 
 
     screen.fill((255,255,255))

@@ -87,7 +87,7 @@ class Hero0(MySprite):
         MySprite.__init__(self, target)
         # 初始化血、蓝
         self.__maxHp = 7
-        self.__currentHP = self.__maxHp
+        self.currentHP = self.__maxHp
         self.__maxMp = 200
         self.currentMP = self.__maxMp
 
@@ -106,12 +106,12 @@ class Hero0(MySprite):
 class Bullet(MySprite):
     def __init__(self, target, speed):
         MySprite.__init__(self, target)
-        self.__damage = 1
+        self.damage = 1
         self.__atackCD = 0.1
         self.speed = speed
         self.movement = True
     def is_out_screen(self):
-        return self.X > 640 or self.Y > 480 or self.X < 0 or self.Y < 0
+        return self.X > 1080 or self.Y > 720 or self.X < 0 or self.Y < 0
 
 
 
@@ -151,18 +151,29 @@ class Monster0(MySprite):
 
         self.random_moveCD = 0.5
         self.random_move = 0
-        self.attackCD = 0.3
+
+        self.attackCD = 0.4
         self.last_attack_time = 0
 
+        self.reloadCD = 5
+        self.attack_keep_time = 2
+        self.attack_start_time = 0
+        self.attack_stop_time = 0
+        self.can_attack = False
+
+
         self.target_direction = [0,0]
+        self.target_distance = 0
 
     def update(self, current_time, rate=100):
         MySprite.update(self, current_time, rate)
         x = self.attack_target.X - self.X
         y = self.attack_target.Y - self.Y
+        self.target_distance = x*x + y*y
         if x != 0 or y != 0:
-            self.target_direction[0] = x / math.sqrt(x*x + y*y)
-            self.target_direction[1] = y / math.sqrt(x*x + y*y)
+
+            self.target_direction[0] = x / math.sqrt(self.target_distance)
+            self.target_direction[1] = y / math.sqrt(self.target_distance)
         else:
             self.target_direction = [0,0]
         #自动移动
@@ -185,14 +196,26 @@ class Monster0(MySprite):
             self.movement = False
         # 自动移动代码结束------------------------------------------------
         # 自动开火
-        if self.movement == False and time.process_time() - self.last_attack_time > self.attackCD:          #暂时采用一旦停止移动就开火的逻辑
+        if time.process_time() - self.attack_stop_time > self.reloadCD and self.can_attack == False:
+            self.attack_start_time = time.process_time()
+            self.can_attack = True
+        if time.process_time() - self.attack_start_time > self.attack_keep_time and self.can_attack == True:
+            self.attack_stop_time = time.process_time()
+            self.can_attack = False
+
+        if self.can_attack and time.process_time() - self.last_attack_time > self.attackCD:
 
             self.last_attack_time = time.process_time()
-            x = self.target_direction[0]
-            y = self.target_direction[1]
-            x = (x + random.uniform(-0.5,0.5)) * self.bullet_list.l[0].speed
-            y = (y + random.uniform(-0.5,0.5)) * self.bullet_list.l[0].speed
+            x = self.target_direction[0] + random.uniform(-0.3,0.3)
+            y = self.target_direction[1] + random.uniform(-0.3,0.3)
+            if x != 0 or y != 0:
+                x = x / math.sqrt(x*x + y*y)
+                y = y/ math.sqrt(x*x + y*y)
+
+            x = x * self.bullet_list.l[0].speed
+            y = y * self.bullet_list.l[0].speed
             self.bullet_group.add(self.attack(self.bullet_list, (x, y) ))
+
 
 
     @property
