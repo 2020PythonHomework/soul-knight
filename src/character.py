@@ -166,7 +166,7 @@ class Monster0(MySprite):
     def __init__(self, target, bullet_list = None, bullet_group = None):
         MySprite.__init__(self, target)
         self.__maxHp = 10
-        self.__currentHP = self.__maxHp
+        self.currentHP = self.__maxHp
 
         self.__attack_target = None
         self.bullet_list = bullet_list
