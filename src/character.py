@@ -101,6 +101,33 @@ class Hero0(MySprite):
     def attack(self, bullet_list, vel):
         return bullet_list.attack(self, vel)
 
+    def show_state(self, screen):
+        WHITE = (255, 255, 255)
+        BLACK = (0, 0, 0)
+        RED = (255, 0, 0)
+        BLUE = (0, 0, 255)
+
+        text = pygame.font.Font("1.ttf", 30)
+        hp = text.render("HP", 3, WHITE)
+        mp = text.render("MP", 3, WHITE)
+        screen.blit(hp, (15, 597))
+        screen.blit(mp, (15, 647))
+        pygame.draw.rect(screen, WHITE, (70, 600, 200, 30), 4)
+        pygame.draw.rect(screen, WHITE, (70, 650, 200, 30), 4)
+
+        pygame.draw.rect(screen, RED, (73, 603, 195 * self.currentHP / self.__maxHp, 25), 0)
+        pygame.draw.rect(screen, BLUE, (73, 653, 195 * self.currentMP / self.__maxMp, 25), 0)
+
+        text0 = pygame.font.Font("1.ttf", 30)
+        hp_n = text0.render(str(self.currentHP) + ' / ' + str(self.__maxHp), 10, WHITE)
+        mp_n = text0.render(str(self.currentMP) + ' / ' + str(self.__maxMp), 10, WHITE)
+        screen.blit(hp_n, (140, 597))
+        screen.blit(mp_n, (115, 647))
+
+    def update(self, current_time, rate=100):
+        MySprite.update(self, current_time, rate)
+        self.show_state(self.target_surface)
+
 
 
 class Bullet(MySprite):

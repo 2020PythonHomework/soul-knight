@@ -102,12 +102,12 @@ while True:
     if attacker != None:
         if pygame.sprite.collide_circle_ratio(0.65)(hero0, attacker):
             hero0.currentHP -= attacker.damage
-            print(hero0.currentHP)
             monster_bullet_group.remove(attacker)
 
 
 
-    screen.fill((255,255,255))
+    screen.fill((100,100,100))
+
     hero_group.update(ticks)
     hero_group.draw(screen)
     hero_bullet_group.update(ticks)
