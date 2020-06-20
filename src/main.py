@@ -8,6 +8,7 @@ import pygame
 from pygame.locals import *
 from functions import *
 from character import *
+from map import *
 
 
 hero_png = '../img/character/hero.png'
@@ -18,7 +19,7 @@ pistol_png = '../img/weapons/pistol.png'
 monster0_png = '../img/character/monster0.png'
 bullet0_png = '../img/weapons/bullet0.png'
 bullet1_png = '../img/weapons/bullet1.png'
-
+MAP_MSG1_TXT = '../data/map2.txt'
 
 #main__--------------------------------------------------------------
 pygame.init()
@@ -27,6 +28,15 @@ screen = pygame.display.set_mode(windows_size)      # 启动屏幕
 framerate = pygame.time.Clock()                     # 控制游戏最大帧率
 
 group_list = []
+# initial map
+wall_group = pygame.sprite.Group()
+floor_group = pygame.sprite.Group()
+group_list.append(wall_group)
+group_list.append(floor_group)
+
+map_msg = load_map(MAP_MSG1_TXT)
+generate_level(map_msg, screen, wall_group, floor_group)
+
 # initial player
 hero0 = Hero0(screen)
 hero0.load(hero_png, 100, 100, 4)
@@ -64,24 +74,24 @@ while True:
 
         elif event.type == KEYUP:
             hero0.movement = False
-            hero0.velocity = [0,0]
+            hero0.velocity = MySprite.player_velocity = [0,0]
 
     keys = pygame.key.get_pressed()
 
 # 控制人物移动
 
     if keys[K_w]:
-        hero0.velocity[1] = -7
+        MySprite.player_velocity[1] = hero0.velocity[1] = -10
         hero0.movement = True
     if keys[K_s]:
-        hero0.velocity[1] = 7
+        MySprite.player_velocity[1] = hero0.velocity[1] = 10
         hero0.movement = True
     if keys[K_d]:
-        hero0.velocity[0] = 7
+        MySprite.player_velocity[0] = hero0.velocity[0] = 10
         hero0.movement = True
         hero0.direction = 1
     if keys[K_a]:
-        hero0.velocity[0] = -7
+        MySprite.player_velocity[0] = hero0.velocity[0] = -10
         hero0.movement = True
         hero0.direction = 0
 
@@ -95,20 +105,14 @@ while True:
         # mp减少
         hero0.currentMP -= 1
 
-    # 清空飞出屏幕的子弹
-    for i in hero_bl.l:
-        if i.is_out_screen():
-            hero_bullet_group.remove(i)
-            i.position = hero0.position     # 避免子弹被清空后仍调用该函数
-
     # 检测角色是否被击中
-    hit_check(hero_group, monster_bullet_group)
-    hit_check(monster_group, hero_bullet_group)
-    #删除被击杀的怪物
-    for monster in monster_group:
-        if monster.currentHP < 0:
-            monster_group.remove(monster)
-
+    damage_check(hero_group, monster_bullet_group)
+    damage_check(monster_group, hero_bullet_group)
+    # 撞墙检测
+    block_check(hero_group, wall_group)
+    block_check(monster_group, wall_group)
+    block_check(hero_bullet_group, wall_group, True)
+    block_check(monster_bullet_group, wall_group, True)
     screen.fill((100,100,100))
     for group in group_list:
         group.update(ticks)

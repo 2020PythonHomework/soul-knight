@@ -5,6 +5,7 @@ import random
 import math
 
 class MySprite(pygame.sprite.Sprite):
+    player_velocity = [0,0]
     def __init__(self, target):
         # basic picture attributes-----------------------------------
         pygame.sprite.Sprite.__init__(self)
@@ -46,20 +47,20 @@ class MySprite(pygame.sprite.Sprite):
 
     #move character
     def move(self):
-        if self.movement:
-            self.X += self.velocity[0]
-            self.Y += self.velocity[1]
-            self.first_frame = self.direction * self.columns        # 向左走从0帧到3帧，向右4-7帧
-            self.last_frame = self.first_frame + self.columns - 1
-        else:
-            self.last_frame = self.first_frame +1          # 人物静止
+        if not self.movement:
+            self.velocity[0] = self.velocity[1] = 0
+        self.X += (self.velocity[0] - MySprite.player_velocity[0])
+        self.Y += (self.velocity[1] - MySprite.player_velocity[1])
+        self.first_frame = self.direction * self.columns        # 向左走从0帧到3帧，向右4-7帧
+        self.last_frame = self.first_frame + self.columns - 1
+
 
     #load picture---------------------------------------------------------
-    def load(self, filename, width, height, columns):
+    def load(self, filename, width, height, columns, birth_x=400, birth_y=300):
         self.master_image = pygame.image.load(filename).convert_alpha()
         self.frame_width = width
         self.frame_height = height
-        self.rect = Rect(0,0,width,height)
+        self.rect = Rect(birth_x,birth_y,width,height)
         self.columns = columns
        # rect = self.master_image.get_rect()
        # self.last_frame = 0
@@ -90,12 +91,12 @@ class Hero0(MySprite):
         self.currentHP = self.__maxHp
         self.__maxMp = 200
         self.currentMP = self.__maxMp
-
+        self.velocity = MySprite.player_velocity
        # self.is_attack = False
         self.last_attack_time = 0
-        self.atackCD = 0.1
+        self.attackCD = 0.2
     def can_attack(self):
-        return (time.process_time() - self.last_attack_time > self.atackCD) \
+        return (time.process_time() - self.last_attack_time > self.attackCD) \
                and self.currentMP > 0
 
     def attack(self, bullet_list, vel):
@@ -110,19 +111,19 @@ class Hero0(MySprite):
         text = pygame.font.Font("1.ttf", 30)
         hp = text.render("HP", 3, WHITE)
         mp = text.render("MP", 3, WHITE)
-        screen.blit(hp, (15, 597))
-        screen.blit(mp, (15, 647))
-        pygame.draw.rect(screen, WHITE, (70, 600, 200, 30), 4)
-        pygame.draw.rect(screen, WHITE, (70, 650, 200, 30), 4)
+        screen.blit(hp, (15, 0))
+        screen.blit(mp, (15, 50))
+        pygame.draw.rect(screen, WHITE, (70, 0, 200, 30), 4)
+        pygame.draw.rect(screen, WHITE, (70, 50, 200, 30), 4)
 
-        pygame.draw.rect(screen, RED, (73, 603, 195 * self.currentHP / self.__maxHp, 25), 0)
-        pygame.draw.rect(screen, BLUE, (73, 653, 195 * self.currentMP / self.__maxMp, 25), 0)
+        pygame.draw.rect(screen, RED, (73, 3, 195 * self.currentHP / self.__maxHp, 25), 0)
+        pygame.draw.rect(screen, BLUE, (73, 53, 195 * self.currentMP / self.__maxMp, 25), 0)
 
         text0 = pygame.font.Font("1.ttf", 30)
         hp_n = text0.render(str(self.currentHP) + ' / ' + str(self.__maxHp), 10, WHITE)
         mp_n = text0.render(str(self.currentMP) + ' / ' + str(self.__maxMp), 10, WHITE)
-        screen.blit(hp_n, (140, 597))
-        screen.blit(mp_n, (115, 647))
+        screen.blit(hp_n, (140, -2))
+        screen.blit(mp_n, (115, 48))
 
     def update(self, current_time, rate=100):
         MySprite.update(self, current_time, rate)
@@ -134,7 +135,7 @@ class Bullet(MySprite):
     def __init__(self, target, speed):
         MySprite.__init__(self, target)
         self.damage = 1
-        self.__atackCD = 0.1
+        self.__attackCD = 0.2
         self.speed = speed
         self.movement = True
     def is_out_screen(self):
@@ -207,8 +208,8 @@ class Monster0(MySprite):
         if self.movement == True and time.process_time() - self.random_move > self.random_moveCD:
             self.random_move = time.process_time()
 
-            self.velocity[0] = 4 * self.target_direction[0]
-            self.velocity[1] = 4 * self.target_direction[1]
+            self.velocity[0] = 7 * self.target_direction[0]
+            self.velocity[1] = 7 * self.target_direction[1]
             if self.velocity[0] > 0:
                 self.direction = 1
             else:
@@ -241,8 +242,11 @@ class Monster0(MySprite):
 
             x = x * self.bullet_list.l[0].speed
             y = y * self.bullet_list.l[0].speed
-            self.bullet_group.add(self.attack(self.bullet_list, (x, y) ))
-
+            self.bullet_group.add(self.attack(self.bullet_list, [x, y] ))
+        # 自动开火结束----------------------------------
+        # 检测是否死亡并移除自身
+        if self.currentHP <= 0:
+            self.kill()
 
 
     @property
