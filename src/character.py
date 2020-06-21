@@ -3,6 +3,7 @@ from pygame.locals import * # 导入pygame中所有常量
 import time
 import random
 import math
+from music import *
 
 class MySprite(pygame.sprite.Sprite):
     player_velocity = [0,0]
@@ -84,22 +85,23 @@ class MySprite(pygame.sprite.Sprite):
         self.move()
 
 class Hero0(MySprite):
-    def __init__(self, target):
+    def __init__(self, target, atk_sound):
         MySprite.__init__(self, target)
         # 初始化血、蓝
-        self.__maxHp = 7
+        self.__maxHp = 14
         self.currentHP = self.__maxHp
         self.__maxMp = 200
         self.currentMP = self.__maxMp
         self.velocity = MySprite.player_velocity
-       # self.is_attack = False
         self.last_attack_time = 0
         self.attackCD = 0.2
+        self.attack_sound = Music(pygame.mixer.Sound(atk_sound))
     def can_attack(self):
         return (time.process_time() - self.last_attack_time > self.attackCD) \
                and self.currentMP > 0
 
     def attack(self, bullet_list, vel):
+        self.attack_sound.play_sound()
         return bullet_list.attack(self, vel)
 
     def show_state(self, screen):
@@ -132,9 +134,9 @@ class Hero0(MySprite):
 
 
 class Bullet(MySprite):
-    def __init__(self, target, speed):
+    def __init__(self, target, speed, damage = 1):
         MySprite.__init__(self, target)
-        self.damage = 1
+        self.damage = damage
         self.__attackCD = 0.2
         self.speed = speed
         self.movement = True
@@ -144,12 +146,12 @@ class Bullet(MySprite):
 
 
 class Bullet_list(object):
-    def __init__(self, display_target, file, bullet_speed = 25):
+    def __init__(self, display_target, file, bullet_speed = 25, damage = 1):
         self.l = []
         self.l_pointer = 0
 
         for i in range(30):
-            bullet = Bullet(display_target, bullet_speed)
+            bullet = Bullet(display_target, bullet_speed, damage)
             bullet.load(file, 40, 40, 1)
             self.l.append(bullet)
     def attack(self, owner, vel):
@@ -166,16 +168,19 @@ class Bullet_list(object):
 class Monster0(MySprite):
     def __init__(self, target, bullet_list = None, bullet_group = None):
         MySprite.__init__(self, target)
+        self.is_awake = False
+
+
         self.__maxHp = 10
         self.currentHP = self.__maxHp
 
         self.__attack_target = None
         self.bullet_list = bullet_list
         self.bullet_group = bullet_group
-        self.max_stay_time = 1.5
+        self.max_stay_time = random.randint(1,4)
         self.stay_start_time = 0
         self.stay_end_time = 0
-        self.max_move_time = 1.5
+        self.max_move_time = random.randint(1,4)
 
         self.random_moveCD = 0.5
         self.random_move = 0
@@ -183,8 +188,8 @@ class Monster0(MySprite):
         self.attackCD = 0.4
         self.last_attack_time = 0
 
-        self.reloadCD = 5
-        self.attack_keep_time = 2
+        self.reloadCD = random.randint(2,10)
+        self.attack_keep_time = 1
         self.attack_start_time = 0
         self.attack_stop_time = 0
         self.can_attack = False
@@ -195,59 +200,61 @@ class Monster0(MySprite):
 
     def update(self, current_time, rate=100):
         MySprite.update(self, current_time, rate)
-        x = self.attack_target.X - self.X
-        y = self.attack_target.Y - self.Y
-        self.target_distance = x*x + y*y
-        if x != 0 or y != 0:
-
-            self.target_direction[0] = x / math.sqrt(self.target_distance)
-            self.target_direction[1] = y / math.sqrt(self.target_distance)
+        if not self.is_awake:
+            return
         else:
-            self.target_direction = [0,0]
-        #自动移动
-        if self.movement == True and time.process_time() - self.random_move > self.random_moveCD:
-            self.random_move = time.process_time()
-
-            self.velocity[0] = 7 * self.target_direction[0]
-            self.velocity[1] = 7 * self.target_direction[1]
-            if self.velocity[0] > 0:
-                self.direction = 1
-            else:
-                self.direction = 0
-
-        if self.movement == False and (time.process_time() - self.stay_start_time > self.max_stay_time):
-            self.movement = True
-            self.stay_end_time = time.process_time()
-
-        if self.movement == True and time.process_time() - self.stay_end_time > self.max_move_time:
-            self.stay_start_time = time.process_time()
-            self.movement = False
-        # 自动移动代码结束------------------------------------------------
-        # 自动开火
-        if time.process_time() - self.attack_stop_time > self.reloadCD and self.can_attack == False:
-            self.attack_start_time = time.process_time()
-            self.can_attack = True
-        if time.process_time() - self.attack_start_time > self.attack_keep_time and self.can_attack == True:
-            self.attack_stop_time = time.process_time()
-            self.can_attack = False
-
-        if self.can_attack and time.process_time() - self.last_attack_time > self.attackCD:
-
-            self.last_attack_time = time.process_time()
-            x = self.target_direction[0] + random.uniform(-0.3,0.3)
-            y = self.target_direction[1] + random.uniform(-0.3,0.3)
+            x = self.attack_target.X - self.X           # 确定攻击目标方向
+            y = self.attack_target.Y - self.Y
+            self.target_distance = x*x + y*y
             if x != 0 or y != 0:
-                x = x / math.sqrt(x*x + y*y)
-                y = y/ math.sqrt(x*x + y*y)
 
-            x = x * self.bullet_list.l[0].speed
-            y = y * self.bullet_list.l[0].speed
-            self.bullet_group.add(self.attack(self.bullet_list, [x, y] ))
-        # 自动开火结束----------------------------------
-        # 检测是否死亡并移除自身
-        if self.currentHP <= 0:
-            self.kill()
+                self.target_direction[0] = x / math.sqrt(self.target_distance)
+                self.target_direction[1] = y / math.sqrt(self.target_distance)
+            else:
+                self.target_direction = [0,0]
+            #自动移动
+            if self.movement == True and time.process_time() - self.random_move > self.random_moveCD:
+                self.random_move = time.process_time()
 
+                self.velocity[0] = 7 * self.target_direction[0]
+                self.velocity[1] = 7 * self.target_direction[1]
+                if self.velocity[0] > 0:
+                    self.direction = 1
+                else:
+                    self.direction = 0
+
+            if self.movement == False and (time.process_time() - self.stay_start_time > self.max_stay_time):
+                self.movement = True
+                self.stay_end_time = time.process_time()
+
+            if self.movement == True and time.process_time() - self.stay_end_time > self.max_move_time:
+                self.stay_start_time = time.process_time()
+                self.movement = False
+            # 自动移动代码结束------------------------------------------------
+            # 自动开火
+            if time.process_time() - self.attack_stop_time > self.reloadCD and self.can_attack == False:
+                self.attack_start_time = time.process_time()
+                self.can_attack = True
+            if time.process_time() - self.attack_start_time > self.attack_keep_time and self.can_attack == True:
+                self.attack_stop_time = time.process_time()
+                self.can_attack = False
+
+            if self.can_attack and time.process_time() - self.last_attack_time > self.attackCD:
+
+                self.last_attack_time = time.process_time()
+                x = self.target_direction[0] + random.uniform(-0.3,0.3)
+                y = self.target_direction[1] + random.uniform(-0.3,0.3)
+                if x != 0 or y != 0:
+                    x = x / math.sqrt(x*x + y*y)
+                    y = y/ math.sqrt(x*x + y*y)
+
+                x = x * self.bullet_list.l[0].speed
+                y = y * self.bullet_list.l[0].speed
+                self.bullet_group.add(self.attack(self.bullet_list, [x, y] ))
+            # 自动开火结束----------------------------------
+            # 检测是否死亡并移除自身
+            if self.currentHP <= 0:
+                self.kill()
 
     @property
     def attack_target(self):
